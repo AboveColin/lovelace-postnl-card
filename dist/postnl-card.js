@@ -117,7 +117,7 @@
   },
         p = e => -1 !== e.index,
         u = () => document.createComment(""),
-        m = /([ \x09\x0a\x0c\x0d])([^\0-\x1F\x7F-\x9F "'>=\/]+)([ \x09\x0a\x0c\x0d]*=[ \x09\x0a\x0c\x0d]*(?:[^ \x09\x0a\x0c\x0d"'`<>=]*|"[^"]*|'[^']*))$/;
+        m = /([ \x09\x0a\x0c\x0d])([^\0-\x1F\x7F-\x9F "'>=/]+)([ \x09\x0a\x0c\x0d]*=[ \x09\x0a\x0c\x0d]*(?:[^ \x09\x0a\x0c\x0d"'`<>=]*|"[^"]*|'[^']*))$/;
 
   class f {
     constructor(e, t, i) {
@@ -7755,7 +7755,7 @@
     renderShipment(e) {
       let t = this.translate("unknown"),
           i = "delivered";
-      return null != e.delivery_date ? t = this.dateConversion(e.delivery_date) : null != e.planned_date && (i = "enroute", t = `${this.dateConversion(e.planned_date)} ${this.timeConversion(e.planned_from)} - ${this.timeConversion(e.planned_to)}`), O`
+      return null != e.delivery_date ? t = this.dateConversion(e.delivery_date) : null != e.planned_date && (i = "enroute", t = null != e.expected_datetime ? `${this.dateConversion(e.expected_datetime)} ${this.timeConversion(e.expected_datetime)}` : `${this.dateConversion(e.planned_date)} ${this.timeConversion(e.planned_from)} - ${this.timeConversion(e.planned_to)}`), O`
         <tr class="${i}">
           <td class="name"><a href="${e.url}" target="_blank">${e.name}</a></td>
           <td>${e.status_message}</td>

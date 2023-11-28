@@ -558,9 +558,15 @@ class PostNL extends LitElement {
       delivery_date = this.dateConversion(shipment.delivery_date);
     } else if (shipment.planned_date != null) {
       className = "enroute";
-      delivery_date = `${this.dateConversion(shipment.planned_date)} ${
-        this.timeConversion(shipment.planned_from)} - ${
-        this.timeConversion(shipment.planned_to)}`;
+
+      if (shipment.expected_datetime != null) {
+        delivery_date = `${this.dateConversion(shipment.expected_datetime)} ${
+          this.timeConversion(shipment.expected_datetime)}`;
+      } else {
+        delivery_date = `${this.dateConversion(shipment.planned_date)} ${
+          this.timeConversion(shipment.planned_from)} - ${
+          this.timeConversion(shipment.planned_to)}`;
+      }
     }
 
     return html`

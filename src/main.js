@@ -1,644 +1,428 @@
-import {
-  LitElement, html, css, unsafeCSS
-} from 'lit-element';
-import moment from 'moment/src/moment';
-import Swiper from 'swiper';
-import swiperStyle from "swiper/dist/css/swiper.min.css";
+import { LitElement, html, css } from 'lit-element';
+import moment from 'moment';
+import 'moment/locale/nl';
 
-import 'moment/src/locale/nl';
-
-const DEFAULT_HIDE = {
-  delivered: false,
-  first_letter: false,
-  header: false,
-};
-
-const LANG = {
-  en: {
-    unavailable_entities: 'The given entities are not available. Please check your card configuration',
-    unavailable_letters: 'It seems you have set the letter object, but you haven\'t activated this within PostNL yet. Consider removing the letter object from the card or activate this option in PostNL.',
-    letter: 'Letter',
-    letters: 'Letters',
-    title: 'Title',
-    status: 'Status',
-    delivery_date: 'Delivery date',
-    enroute: 'Enroute',
-    delivered: 'Delivered',
-    delivery: 'Delivery',
-    distribution: 'Distribution',
-    unknown: 'Unknown',
-  },
-  nl: {
-    unavailable_entities: 'De opgegeven entiteiten zijn niet beschikbaar. Controleer je card configuratie',
-    unavailable_letters: 'Het lijkt er op dat je brieven hebt geconfigureerd in deze card, maar je hebt deze niet binnen de PostNL app geactiveerd. Verwijder de brieven van deze card of activeer ze binnen de PostNL app.',
-    letter: 'Brief',
-    letters: 'Brieven',
-    title: 'Titel',
-    status: 'Status',
-    delivery_date: 'Bezorgdatum',
-    enroute: 'Onderweg',
-    delivered: 'Bezorgd',
-    delivery: 'Bezorging',
-    distribution: 'Versturen',
-    unknown: 'Onbekend',
-  }
-};
-
-function renderNotFoundStyles() {
-  return html`
-    <style is="custom-style">
-      ha-card {
-        font-weight: var(--paper-font-body1_-_font-weight);
-        line-height: var(--paper-font-body1_-_line-height);
-      }
-      .not-found {
-        flex: 1;
-        background-color: red;
-        padding: calc(16px);
-      }
-    </style>
-  `;
-}
-
-function renderStyles() {
-  return [
-    html`
-      <style is="custom-style">
-            ${unsafeCSS(swiperStyle)}
-      </style>
-        `,
-    html`
-      <style is="custom-style">
-          ha-card {
-            -webkit-font-smoothing: var(
-              --paper-font-body1_-_-webkit-font-smoothing
-            );
-            font-size: var(--paper-font-body1_-_font-size);
-            font-weight: var(--paper-font-body1_-_font-weight);
-            line-height: var(--paper-font-body1_-_line-height);
-            padding-bottom: 16px;
-          }
-          ha-card.no-header {
-            padding: 16px 0;
-          }
-          .info-body,
-          .detail-body {
-            display: flex;
-            flex-direction: row;
-            justify-content: space-around;
-            align-items: center;
-          }
-          .info {
-            text-align: center;
-          }
-
-          .info__icon {
-            color: var(--paper-item-icon-color, #44739e);
-          }
-          .detail-body table {
-            padding: 0px 16px;
-            width: 100%;
-          }
-          .detail-body td {
-            padding: 2px;
-          }
-          .detail-body thead th {
-            text-align: left;
-          }
-          .detail-body tbody tr:nth-child(odd) {
-            background-color: var(--paper-card-background-color);
-          }
-          .detail-body tbody tr:nth-child(even) {
-            background-color: var(--secondary-background-color);
-          }
-          .detail-body tbody td.name a {
-            color: var(--primary-text-color);
-            text-decoration-line: none;
-            font-weight: normal;
-          }
-          .img-body {
-            margin-bottom: 10px;
-            text-align: center;
-          }
-          .img-body img {
-            padding: 5px;
-            background: repeating-linear-gradient(
-              45deg,
-              #B45859,
-              #B45859 10px,
-              #FFFFFF 10px,
-              #FFFFFF 20px,
-              #122F94 20px,
-              #122F94 30px,
-              #FFFFFF 30px,
-              #FFFFFF 40px
-            );
-          }
-
-          header {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            font-family: var(--paper-font-headline_-_font-family);
-            -webkit-font-smoothing: var(
-              --paper-font-headline_-_-webkit-font-smoothing
-            );
-            font-size: var(--paper-font-headline_-_font-size);
-            font-weight: var(--paper-font-headline_-_font-weight);
-            letter-spacing: var(--paper-font-headline_-_letter-spacing);
-            line-height: var(--paper-font-headline_-_line-height);
-            text-rendering: var(
-              --paper-font-common-expensive-kerning_-_text-rendering
-            );
-            opacity: var(--dark-primary-opacity);
-            padding: 24px
-              16px
-              16px;
-          }
-          .header__icon {
-            margin-right: 8px;
-            color: var(--paper-item-icon-color, #44739e);
-          }
-          .header__title {
-            font-size: var(--thermostat-font-size-title);
-            line-height: var(--thermostat-font-size-title);
-            font-weight: normal;
-            margin: 0;
-            align-self: left;
-          }
-
-          footer {
-            padding: 16px;
-            color: red;
-          }
-      </style>`
-  ];
-}
-
-class PostNL extends LitElement {
+class PostNLCard extends LitElement {
   static get properties() {
     return {
-      _hass: Object,
-      swiper: Object,
-      config: Object,
-      deliveryObject: Object,
-      distributionObject: Object,
-      letterObject: Object,
-      icon: String,
-      name: String,
-      date_format: String,
-      time_format: String,
-      past_days: String,
-      _language: String,
-      _hide: Object,
+      hass: { type: Object },
+      config: { type: Object },
+      delivery: { type: Object },
+      distribution: { type: Object },
+      letters: { type: Object },
+      name: { type: String },
+      icon: { type: String },
+      dateFormat: { type: String },
+      timeFormat: { type: String },
+      pastDays: { type: Number },
+      language: { type: String },
+      hideDelivered: { type: Boolean },
+      enrouteShipments: { type: Array },
+      deliveredShipments: { type: Array },
+      letterItems: { type: Array },
+      _currentTab: { type: String },
     };
   }
 
   constructor() {
     super();
+    this.delivery = null;
+    this.distribution = null;
+    this.letters = null;
+    this.name = 'PostNL';
+    this.icon = 'mdi:mailbox';
+    this.dateFormat = 'DD MMM YYYY';
+    this.timeFormat = 'HH:mm';
+    this.pastDays = 1;
+    this.language = 'nl';
+    this.hideDelivered = false;
+    this.enrouteShipments = [];
+    this.deliveredShipments = [];
+    this.letterItems = [];
+    this._currentTab = 'shipments';
 
-    this._hass = null;
-    this.deliveryObject = null;
-    this.distributionObject = null;
-    this.letterObject = null;
-    this.delivery_enroute = [];
-    this.delivery_delivered = [];
-    this.distribution_enroute = [];
-    this.distribution_delivered = [];
-    this.letters = [];
-    this.icon = null;
-    this.name = null;
-    this.date_format = null;
-    this.time_format = null;
-    this.past_days = null;
-    this._language = null;
-    this._hide = DEFAULT_HIDE;
-    this._lang = LANG;
-  }
-
-  set hass(hass) {
-    this._hass = hass;
-
-    if (this.config.delivery) {
-      this.deliveryObject = hass.states[this.config.delivery];
-    }
-
-    if (this.config.distribution) {
-      this.distributionObject = hass.states[this.config.distribution];
-    }
-
-    if (this.config.letters) {
-      this.letterObject = hass.states[this.config.letters];
-    }
-
-    if (this.config.hide) {
-      this._hide = { ...this._hide, ...this.config.hide };
-    }
-
-    if (typeof this.config.name === 'string') {
-      this.name = this.config.name;
-    } else {
-      this.name = "PostNL";
-    }
-
-    if (this.config.icon) {
-      this.icon = this.config.icon;
-    } else {
-      this.icon = "mdi:mailbox";
-    }
-
-    if (this.config.date_format) {
-      this.date_format = this.config.date_format;
-    } else {
-      this.date_format = "DD MMM YYYY";
-    }
-
-    if (this.config.time_format) {
-      this.time_format = this.config.time_format;
-    } else {
-      this.time_format = "HH:mm";
-    }
-
-    if (typeof this.config.past_days !== 'undefined') {
-      this.past_days = parseInt(this.config.past_days, 10);
-    } else {
-      this.past_days = 1;
-    }
-
-    this._language = hass.language;
-    // Lazy fallback
-    if (this._language !== 'nl') {
-      this._language = 'en';
-    }
-
-    this.delivery_enroute = [];
-    this.delivery_delivered = [];
-    this.distribution_enroute = [];
-    this.distribution_delivered = [];
-    this.letters = [];
-
-    // Format letters
-    if (this.letterObject) {
-      Object.entries(this.letterObject.attributes.letters).sort((a, b) => new Date(b[1].delivery_date) - new Date(a[1].delivery_date)).map(([key, letter]) => {
-        if (moment(letter.delivery_date).isBefore(moment().subtract(this.past_days, 'days').startOf('day'))) {
-          return;
-        }
-
-        this.letters.push(letter);
-      });
-    }
-
-    // Format deliveries
-    if (this.deliveryObject) {
-      Object.entries(this.deliveryObject.attributes.enroute).sort((a, b) => new Date(b[1].planned_date) - new Date(a[1].planned_date)).map(([key, shipment]) => {
-        this.delivery_enroute.push(shipment);
-      });
-
-      Object.entries(this.deliveryObject.attributes.delivered).sort((a, b) => new Date(b[1].delivery_date) - new Date(a[1].delivery_date)).map(([key, shipment]) => {
-        if (shipment.delivery_date != null && moment(shipment.delivery_date).isBefore(moment().subtract(this.past_days, 'days').startOf('day'))) {
-          return;
-        }
-
-        this.delivery_delivered.push(shipment);
-      });
-    }
-
-    // Format distribution
-    if (this.distributionObject) {
-      Object.entries(this.distributionObject.attributes.enroute).sort((a, b) => new Date(b[1].planned_date) - new Date(a[1].planned_date)).map(([key, shipment]) => {
-        this.distribution_enroute.push(shipment);
-      });
-
-      Object.entries(this.distributionObject.attributes.delivered).sort((a, b) => new Date(b[1].delivery_date) - new Date(a[1].delivery_date)).map(([key, shipment]) => {
-        if (shipment.delivery_date != null && moment(shipment.delivery_date).isBefore(moment().subtract(this.past_days, 'days').startOf('day'))) {
-          return;
-        }
-
-        this.distribution_delivered.push(shipment);
-      });
-    }
-  }
-
-  render({
-    _hass, _hide, _values, config, delivery, distribution, letters
-  } = this) {
-    if (!delivery && !distribution && !letters) {
-      return html`
-        ${renderNotFoundStyles()}
-        <ha-card class="not-found">
-          ${this.translate('unavailable_entities')}
-        </ha-card>
-      `;
-    }
-
-    return html`
-      ${renderStyles()}
-      <ha-card class="postnl-card">
-        ${this.renderHeader()}
-        <section class="info-body">
-          ${this.renderLettersInfo()}
-          ${this.renderDeliveryInfo()}
-          ${this.renderDistributionInfo()}
-        </section>
-
-      ${this.renderLetters()}
-      ${this.renderDelivery()}
-      ${this.renderDistribution()}
-      ${this.renderLetterWarning()}
-
-      </ha-card>
-    `;
-  }
-
-  renderHeader() {
-    if (this._hide.header) return '';
-
-    return html`
-      <header>
-        <ha-icon class="header__icon" .icon=${this.icon}></ha-icon>
-        <h2 class="header__title">${this.name}</h2>
-      </header>
-    `;
-  }
-
-  renderLetterWarning() {
-    if (!this.letterObject) return '';
-
-    // Remove undefined check after the first of june
-    if (typeof this.letterObject.attributes.enabled === 'undefined' || this.letterObject.attributes.enabled) return '';
-
-    return html`
-      <footer>
-        ${this.translate('unavailable_letters')}
-      </footer>
-    `;
-  }
-
-  renderLettersInfo() {
-    if (!this.letterObject) return '';
-
-    return html`
-      <div class="info">
-        <ha-icon class="info__icon" icon="mdi:email"></ha-icon><br />
-        <span>${this.letters.length} ${(this.letters.length > 1) ? this.translate('letters') : this.translate('letter')}</span>
-      </div>
-    `;
-  }
-
-  renderLetters() {
-    if (!this.letterObject || (this.letters && this.letters.length === 0)) return '';
-
-    return html`
-      <header>
-        <ha-icon class="header__icon" icon="mdi:email"></ha-icon>
-        <h2 class="header__title">${this.translate('letters')}</h2>
-      </header>
-      ${this.renderLetterImage()}
-      <section class="detail-body">
-        <table>
-          <thead>
-            <tr>
-              <th>${this.translate('title')}</th>
-              <th>${this.translate('status')}</th>
-              <th>${this.translate('delivery_date')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${Object.entries(this.letters).map(([key, letter]) => this.renderLetter(letter))}
-          </tbody>
-        </table>
-      </section>
-    `;
-  }
-
-  renderLetterImage() {
-    if (this._hide.first_letter) return '';
-
-    if (this.letters[0] == null || this.letters[0].image == null) return '';
-
-    return html`
-      <section class="img-body">
-        <div class="swiper-container">
-          <div class="swiper-wrapper">
-            ${Object.entries(this.letters).map(([key, letter]) => {
-    if (letter.image == null) return '';
-
-    return html`
-              <div class="swiper-slide">
-                <img src="${letter.image}&width=400&height=300" />
-              </div>
-              `;
-  })}
-          </div>
-        </div>
-      </section>
-    `;
-  }
-
-  renderLetter(letter) {
-    if (letter.image == null) {
-      return html`
-        <tr>
-          <td class="name">${letter.id}</td>
-          <td>${(letter.status_message != null) ? letter.status_message : this.translate('unknown')}</td>
-          <td>${this.dateConversion(letter.delivery_date)}</td>
-        </tr>
-      `;
-    } else {
-      return html`
-        <tr>
-          <td class="name"><a href="${letter.image}" target="_blank">${letter.id}</a></td>
-          <td>${(letter.status_message != null) ? letter.status_message : this.translate('unknown')}</td>
-          <td>${this.dateConversion(letter.delivery_date)}</td>
-        </tr>
-      `;
-    }
-  }
-
-  renderDeliveryInfo() {
-    if (!this.deliveryObject) return '';
-
-    return html`
-      <div class="info">
-        <ha-icon class="info__icon" icon="mdi:truck-delivery"></ha-icon><br />
-        <span>${this.delivery_enroute.length} ${this.translate('enroute')}</span>
-      </div>
-      <div class="info">
-        <ha-icon class="info__icon" icon="mdi:package-variant"></ha-icon><br />
-        <span>${this.delivery_delivered.length} ${this.translate('delivered')}</span>
-      </div>
-    `;
-  }
-
-
-  renderDistributionInfo() {
-    if (!this.distributionObject) return '';
-
-    return html`
-      <div class="info">
-        <ha-icon class="info__icon" icon="mdi:truck-delivery"></ha-icon><br />
-        <span>${this.distribution_enroute.length} ${this.translate('enroute')}</span>
-      </div>
-      <div class="info">
-        <ha-icon class="info__icon" icon="mdi:package-variant"></ha-icon><br />
-        <span>${this.distribution_delivered.length} ${this.translate('delivered')}</span>
-      </div>
-    `;
-  }
-
-  renderDelivery() {
-    if (!this.deliveryObject) return '';
-
-    if (this.delivery_enroute.length === 0 && this._hide.delivered) return '';
-
-    if (this.delivery_enroute.length === 0 && this.delivery_delivered.length === 0) return '';
-
-    return html`
-      <header>
-        <ha-icon class="header__icon" icon="mdi:package-variant"></ha-icon>
-        <h2 class="header__title">${this.translate('delivery')}</h2>
-      </header>
-      <section class="detail-body">
-        <table>
-          <thead>
-            <tr>
-              <th>${this.translate('title')}</th>
-              <th>${this.translate('status')}</th>
-              <th>${this.translate('delivery_date')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${Object.entries(this.delivery_enroute).map(([key, shipment]) => this.renderShipment(shipment))}
-
-            ${this._hide.delivered ? "" : Object.entries(this.delivery_delivered).map(([key, shipment]) => this.renderShipment(shipment))}
-          </tbody>
-        </table>
-      </section>
-    `;
-  }
-
-  renderDistribution() {
-    // Distribution disabled
-    if (!this.distributionObject) return '';
-
-    if (this.distribution_enroute.length === 0 && this._hide.delivered) return '';
-
-    if (this.distribution_enroute.length === 0 && this.distribution_delivered.length === 0) return '';
-
-    return html`
-      <header>
-        <ha-icon class="header__icon" icon="mdi:package-variant"></ha-icon>
-        <h2 class="header__title">${this.translate('distribution')}</h2>
-      </header>
-      <section class="detail-body">
-        <table>
-          <thead>
-            <tr>
-              <th>${this.translate('title')}</th>
-              <th>${this.translate('status')}</th>
-              <th>${this.translate('delivery_date')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${Object.entries(this.distribution_enroute).map(([key, shipment]) => this.renderShipment(shipment))}
-
-            ${this._hide.delivered ? "" : Object.entries(this.distribution_delivered).map(([key, shipment]) => this.renderShipment(shipment))}
-          </tbody>
-        </table>
-      </section>
-    `;
-  }
-
-  renderShipment(shipment) {
-    let delivery_date = this.translate('unknown');
-    let className = "delivered";
-
-    // Conversion Time
-    if (shipment.delivery_date != null) {
-      delivery_date = this.dateConversion(shipment.delivery_date);
-    } else if (shipment.planned_date != null) {
-      className = "enroute";
-
-      if (shipment.expected_datetime != null) {
-        delivery_date = `${this.dateConversion(shipment.expected_datetime)} ${
-          this.timeConversion(shipment.expected_datetime)}`;
-      } else {
-        delivery_date = `${this.dateConversion(shipment.planned_date)} ${
-          this.timeConversion(shipment.planned_from)} - ${
-          this.timeConversion(shipment.planned_to)}`;
-      }
-    }
-
-    return html`
-        <tr class="${className}">
-          <td class="name"><a href="${shipment.url}" target="_blank">${shipment.name}</a></td>
-          <td>${shipment.status_message}</td>
-          <td>${delivery_date}</td>
-        </tr>
-    `;
-  }
-
-  dateConversion(date) {
-    const momentDate = moment(date);
-    momentDate.locale(this._language);
-
-    return momentDate.calendar(null, {
-      sameDay: '[Today]',
-      nextDay: '[Tomorrow]',
-      sameElse: this.date_format
-    });
-  }
-
-  timeConversion(date) {
-    const momentDate = moment(date);
-    momentDate.locale(this._language);
-
-    return momentDate.format(this.time_format);
-  }
-
-  translate(key) {
-    return this._lang[this._language][key];
+    this.TRANSLATIONS = {
+      en: {
+        letters: 'Letters',
+        letter: 'Letter',
+        enroute: 'Enroute',
+        delivered: 'Delivered',
+        shipments: 'Shipments',
+        title: 'Title',
+        status: 'Status',
+        deliveryDate: 'Delivery Date',
+        today: 'Today',
+        tomorrow: 'Tomorrow',
+        unknown: 'Unknown',
+        unavailable_entities: 'The given entities are not available. Please check your card configuration',
+        no_enroute: 'No enroute shipments',
+        no_delivered: 'No delivered shipments',
+        no_letters: 'No letters',
+      },
+      nl: {
+        letters: 'Brieven',
+        letter: 'Brief',
+        enroute: 'Onderweg',
+        delivered: 'Bezorgd',
+        shipments: 'Zendingen',
+        title: 'Titel',
+        status: 'Status',
+        deliveryDate: 'Bezorgdatum',
+        today: 'Vandaag',
+        tomorrow: 'Morgen',
+        unknown: 'Onbekend',
+        unavailable_entities: 'De opgegeven entiteiten zijn niet beschikbaar. Controleer je card configuratie',
+        no_enroute: 'Geen zendingen onderweg',
+        no_delivered: 'Geen bezorgde zendingen',
+        no_letters: 'Geen brieven',
+      },
+    };
   }
 
   setConfig(config) {
     if (!config.delivery && !config.distribution && !config.letters) {
-      throw new Error('Please define entities');
+      throw new Error('Please define at least one entity (delivery, distribution, or letters)');
+    }
+    this.config = config;
+    this.name = config.name || 'PostNL';
+    this.icon = config.icon || 'mdi:mailbox';
+    this.dateFormat = config.date_format || 'DD MMM YYYY';
+    this.timeFormat = config.time_format || 'HH:mm';
+    this.pastDays = config.past_days || 1;
+    this.language = config.language || (this.hass.language === 'nl' ? 'nl' : 'en');
+    this.hideDelivered = config.hide_delivered || false;
+    moment.locale(this.language);
+    this.t = this.TRANSLATIONS[this.language];
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    if (this.config.delivery) {
+      this.delivery = hass.states[this.config.delivery];
+    }
+    if (this.config.distribution) {
+      this.distribution = hass.states[this.config.distribution];
+    }
+    if (this.config.letters) {
+      this.letters = hass.states[this.config.letters];
+    }
+    this._updateData();
+  }
+
+  _updateData() {
+    const now = moment();
+    const pastDate = now.clone().subtract(this.pastDays, 'days').startOf('day');
+
+    this.enrouteShipments = [];
+    this.deliveredShipments = [];
+    this.letterItems = [];
+
+    const enroute = [];
+    const delivered = [];
+
+    if (this.delivery) {
+      const deliveryEnroute = this.delivery.attributes.enroute || [];
+      const deliveryDelivered = this.delivery.attributes.delivered || [];
+      enroute.push(...deliveryEnroute);
+      delivered.push(...deliveryDelivered);
+    }
+    if (this.distribution) {
+      const distributionEnroute = this.distribution.attributes.enroute || [];
+      const distributionDelivered = this.distribution.attributes.delivered || [];
+      enroute.push(...distributionEnroute);
+      delivered.push(...distributionDelivered);
     }
 
-    this.config = {
-      ...config,
-    };
-  }
+    this.enrouteShipments = enroute.sort((a, b) => moment(b.planned_date).diff(moment(a.planned_date)));
 
-  connectedCallback() {
-    super.connectedCallback();
-    if (this.swiper) {
-      this.swiper.update();
-    } else {
-      this._initialLoad();
+    this.deliveredShipments = delivered.filter(shipment => shipment.delivery_date && moment(shipment.delivery_date).isSameOrAfter(pastDate))
+      .sort((a, b) => moment(b.delivery_date).diff(moment(a.delivery_date)));
+
+    if (this.letters && this.letters.attributes.letters) {
+      const letters = Object.values(this.letters.attributes.letters)
+        .filter(letter => moment(letter.delivery_date).isSameOrAfter(pastDate))
+        .sort((a, b) => moment(b.delivery_date).diff(moment(a.delivery_date)));
+      this.letterItems = letters;
     }
   }
 
-  updated(changedProperties) {
-    super.updated(changedProperties);
-    if (this._config && this._hass && this.isConnected) {
-      this._initialLoad();
-    } else if (this.swiper) {
-      this.swiper.update();
+  render() {
+    if (!this.delivery && !this.distribution && !this.letters) {
+      return html`
+        <ha-card>
+          <div class="not-found">${this.t.unavailable_entities}</div>
+        </ha-card>
+      `;
     }
+    return html`
+      <ha-card>
+        ${this._renderHeader()}
+        <div class="card-content">
+          ${this._renderInfoGrid()}
+          ${this._renderTabs()}
+        </div>
+      </ha-card>
+    `;
   }
 
-  async _initialLoad() {
-    await this.updateComplete;
-
-    this.swiper = new Swiper(this.shadowRoot.querySelector(".swiper-container"));
+  _renderHeader() {
+    return html`
+      <div class="card-header">
+        <ha-icon icon=${this.icon}></ha-icon>
+        <div class="name">${this.name}</div>
+      </div>
+    `;
   }
 
-  getCardSize() {
-    return 3;
+  _renderInfoGrid() {
+    return html`
+      <div class="info-grid">
+        ${this.letters ? html`
+          <div class="info-item">
+            <ha-icon icon="mdi:email"></ha-icon>
+            <div>${this.letterItems.length} ${this.letterItems.length === 1 ? this.t.letter : this.t.letters}</div>
+          </div>
+        ` : ''}
+        <div class="info-item">
+          <ha-icon icon="mdi:truck-delivery"></ha-icon>
+          <div>${this.enrouteShipments.length} ${this.t.enroute}</div>
+        </div>
+        <div class="info-item">
+          <ha-icon icon="mdi:package-variant"></ha-icon>
+          <div>${this.deliveredShipments.length} ${this.t.delivered}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  _renderTabs() {
+    return html`
+      <div class="tabs">
+        <div class="tab-buttons">
+          <button class="tab-button ${this._currentTab === 'shipments' ? 'active' : ''}" @click=${() => this._selectTab('shipments')}>${this.t.shipments}</button>
+          ${this.letters ? html`
+            <button class="tab-button ${this._currentTab === 'letters' ? 'active' : ''}" @click=${() => this._selectTab('letters')}>${this.t.letters}</button>
+          ` : ''}
+        </div>
+        <div class="tab-content">
+          ${this._currentTab === 'shipments' ? this._renderShipmentsTab() : ''}
+          ${this._currentTab === 'letters' ? this._renderLettersTab() : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  _selectTab(tab) {
+    this._currentTab = tab;
+    this.requestUpdate();
+  }
+
+  _renderShipmentsTab() {
+    return html`
+      <div class="shipments-section">
+        <h3>${this.t.enroute}</h3>
+        ${this.enrouteShipments.length > 0
+          ? html`
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>${this.t.title}</th>
+                    <th>${this.t.status}</th>
+                    <th>${this.t.deliveryDate}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${this.enrouteShipments.map((shipment) => this._renderShipmentRow(shipment, 'enroute'))}
+                </tbody>
+              </table>
+            `
+          : html`<p>${this.t.no_enroute}</p>`}
+      </div>
+      ${!this.hideDelivered
+        ? html`
+            <div class="shipments-section">
+              <h3>${this.t.delivered}</h3>
+              ${this.deliveredShipments.length > 0
+                ? html`
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th></th>
+                          <th>${this.t.title}</th>
+                          <th>${this.t.status}</th>
+                          <th>${this.t.deliveryDate}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${this.deliveredShipments.map((shipment) => this._renderShipmentRow(shipment, 'delivered'))}
+                      </tbody>
+                    </table>
+                  `
+                : html`<p>${this.t.no_delivered}</p>`}
+            </div>
+          `
+        : ''}
+    `;
+  }
+
+  _renderShipmentRow(shipment, status) {
+    let deliveryDate = this.t.unknown;
+    let icon = status === 'delivered' ? 'mdi:check-circle' : 'mdi:truck';
+    let className = status;
+
+    if (shipment.delivery_date) {
+      deliveryDate = this._formatDate(shipment.delivery_date);
+    } else if (shipment.planned_date) {
+      if (shipment.expected_datetime) {
+        deliveryDate = `${this._formatDate(shipment.expected_datetime)} ${this._formatTime(shipment.expected_datetime)}`;
+      } else {
+        deliveryDate = `${this._formatDate(shipment.planned_date)} ${this._formatTime(shipment.planned_from)} - ${this._formatTime(shipment.planned_to)}`;
+      }
+    }
+
+    return html`
+      <tr class="${className}">
+        <td><ha-icon icon="${icon}"></ha-icon></td>
+        <td><a href="${shipment.url}" target="_blank">${shipment.name}</a></td>
+        <td>${shipment.status_message || this.t.unknown}</td>
+        <td>${deliveryDate}</td>
+      </tr>
+    `;
+  }
+
+  _renderLettersTab() {
+    return html`
+      <div class="letters-section">
+        <h3>${this.t.letters}</h3>
+        ${this.letterItems.length > 0
+          ? html`
+              ${this.letterItems[0].image
+                ? html`
+                    <div class="letter-image">
+                      <img src="${this.letterItems[0].image}&width=400&height=300" alt="Letter Image" />
+                    </div>
+                  `
+                : ''}
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>${this.t.title}</th>
+                    <th>${this.t.status}</th>
+                    <th>${this.t.deliveryDate}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${this.letterItems.map((letter) => this._renderLetterRow(letter))}
+                </tbody>
+              </table>
+            `
+          : html`<p>${this.t.no_letters}</p>`}
+      </div>
+    `;
+  }
+
+  _renderLetterRow(letter) {
+    let icon = 'mdi:email';
+
+    return html`
+      <tr>
+        <td><ha-icon icon="${icon}"></ha-icon></td>
+        <td>
+          ${letter.image
+            ? html`<a href="${letter.image}" target="_blank">${letter.id}</a>`
+            : letter.id}
+        </td>
+        <td>${letter.status_message || this.t.unknown}</td>
+        <td>${this._formatDate(letter.delivery_date)}</td>
+      </tr>
+    `;
+  }
+
+  _formatDate(date) {
+    const momentDate = moment(date);
+    return momentDate.calendar(null, {
+      sameDay: this.t.today,
+      nextDay: this.t.tomorrow,
+      sameElse: this.dateFormat,
+    });
+  }
+
+  _formatTime(date) {
+    return moment(date).format(this.timeFormat);
+  }
+
+  static get styles() {
+    return css`
+      ha-card {
+        padding: 16px;
+      }
+      .card-header {
+        display: flex;
+        align-items: center;
+        font-size: 24px;
+        padding-bottom: 16px;
+      }
+      .card-header ha-icon {
+        margin-right: 8px;
+      }
+      .info-grid {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 16px;
+      }
+      .info-item {
+        text-align: center;
+      }
+      .info-item ha-icon {
+        display: block;
+        margin: 0 auto 8px;
+        color: var(--paper-item-icon-color, #44739e);
+      }
+      .tabs {
+        margin-top: 16px;
+      }
+      .tab-buttons {
+        display: flex;
+      }
+      .tab-button {
+        flex: 1;
+        padding: 8px;
+        background: var(--primary-color);
+        color: var(--text-primary-color);
+        border: none;
+        cursor: pointer;
+      }
+      .tab-button.active {
+        background: var(--primary-dark-color);
+      }
+      .tab-content {
+        margin-top: 16px;
+      }
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .data-table th, .data-table td {
+        padding: 8px;
+        border-bottom: 1px solid var(--divider-color);
+        text-align: left;
+      }
+      .letter-image {
+        text-align: center;
+        margin-bottom: 16px;
+      }
+      .letter-image img {
+        max-width: 100%;
+      }
+      .not-found {
+        color: var(--error-color);
+        text-align: center;
+        padding: 16px;
+      }
+    `;
   }
 }
 
-window.customElements.define('postnl-card', PostNL);
-
-export default PostNL;
+customElements.define('postnl-card', PostNLCard);

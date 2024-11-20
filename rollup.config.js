@@ -1,26 +1,27 @@
-import resolve from 'rollup-plugin-node-resolve';
-import postcss from "rollup-plugin-postcss";
-import babel from "rollup-plugin-babel";
-import { terser } from "rollup-plugin-terser";
-import minify from 'rollup-plugin-babel-minify';
+import resolve from '@rollup/plugin-node-resolve';
+import commonjs from '@rollup/plugin-commonjs';
+import postcss from 'rollup-plugin-postcss';
+import babel from '@rollup/plugin-babel';
+import { terser } from 'rollup-plugin-terser';
 
 export default {
-  input: ['src/main.js'],
+  input: 'src/main.js',
   output: {
     file: 'dist/postnl-card.js',
-    format: 'umd',
-    name: 'PostNLCard',
+    format: 'esm',
   },
   plugins: [
     resolve(),
+    commonjs(),
     postcss({
-      extensions: [".css"]
+      extensions: ['.css'],
+      minimize: true,
     }),
     babel({
-      exclude: "node_modules/**",
-      babelrc: false
+      babelHelpers: 'bundled',
+      exclude: 'node_modules/**',
+      presets: ['@babel/preset-env'],
     }),
     terser(),
-    //minify(),
   ],
 };

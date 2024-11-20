@@ -6,8 +6,7 @@
 
 Home Assistant Lovelace card for PostNL.
 
-**WARNING: This card is not compatible with the current Home Assistant component. Please read this topic:
-https://community.home-assistant.io/t/lovelace-postnl/112433**
+**This card is compatible with the current Home Assistant component.**
 
 ![Example](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/5/2/527bc612e6eb092f1d4887e9d6272c7b4278ec65.png)
 
@@ -105,6 +104,7 @@ cards:
 * [swiper-card](https://github.com/bramkragten/custom-ui)
 
 ## Contributors
+* [Colin de Vries](https://github.com/abovecolin)
 * [Peter Nijssen](https://github.com/peternijssen)
 * [Rob van Uden](https://github.com/robvanuden)
 * [Kevin Tuhumury](https://github.com/kevintuhumury)

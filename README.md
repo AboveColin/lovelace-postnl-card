@@ -8,7 +8,7 @@ Home Assistant Lovelace card for PostNL.
 
 **This card is compatible with the current Home Assistant component.**
 
-![Example](https://community-home-assistant-assets.s3.dualstack.us-west-2.amazonaws.com/original/3X/5/2/527bc612e6eb092f1d4887e9d6272c7b4278ec65.png)
+![Example]()
 
 ## Features
 * Display of letters
